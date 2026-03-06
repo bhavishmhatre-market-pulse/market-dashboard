@@ -9,38 +9,41 @@ st.title("📊 Global Market Impact Pulse")
 
 # --- 1. LIVE PRICES (Sidebar) ---
 st.sidebar.header("Live Watchlist")
-# Fixed Silver to XAG=X (Spot Silver) for reliable live data
-tickers = {"Silver (XAG)": "XAG=X", "Gold (XAU)": "GC=F", "Crude Oil": "CL=F", "S&P 500": "^GSPC"}
+
+# We will use SI=F (Silver Futures) as it is generally the most stable free ticker
+tickers = {"Silver (XAG)": "SI=F", "Gold (XAU)": "GC=F", "Crude Oil": "CL=F", "S&P 500": "^GSPC"}
 
 for name, symbol in tickers.items():
     try:
         data = yf.Ticker(symbol)
-        price = round(data.history(period="1d")['Close'].iloc[-1], 2)
-        st.sidebar.metric(label=name, value=f"${price}")
-    except:
+        # CHANGED: Pull 5 days of data to guarantee we don't get a blank page
+        hist = data.history(period="5d")
+        
+        if not hist.empty:
+            price = round(hist['Close'].iloc[-1], 2)
+            st.sidebar.metric(label=name, value=f"${price}")
+        else:
+            st.sidebar.metric(label=name, value="Market Closed")
+    except Exception as e:
         st.sidebar.metric(label=name, value="Fetching...")
 
 # --- 2. LIVE NEWS & AI SENTIMENT ---
 st.subheader("🔥 Live News Impact Stream")
 
 try:
-    # This securely pulls the key from Streamlit's hidden vault
     API_KEY = st.secrets["NEWS_API_KEY"]
     
-    # Fetch latest news specifically about Silver, Gold, Oil, or Markets
     url = f"https://newsapi.org/v2/everything?q=silver OR gold OR crude oil OR global market&language=en&sortBy=publishedAt&apiKey={API_KEY}"
     response = requests.get(url).json()
     
     if response.get("status") == "ok":
-        articles = response.get("articles", [])[:10] # Gets the 10 newest articles
+        articles = response.get("articles", [])[:10] 
         analyzer = SentimentIntensityAnalyzer()
         
         for article in articles:
             title = article.get("title", "")
-            # The AI Brain scores the headline
             score = analyzer.polarity_scores(title)['compound']
             
-            # Decide the color and impact based on the score
             if score > 0.1:
                 impact = "🟢 GOOD IMPACT"
             elif score < -0.1:
@@ -48,7 +51,6 @@ try:
             else:
                 impact = "⚪ NEUTRAL"
                 
-            # Display the news on the screen
             with st.expander(f"{impact} | {title}"):
                 st.write(article.get("description", "No description available."))
                 st.markdown(f"**Source:** {article['source']['name']} | [Read Full Article]({article.get('url')})")
