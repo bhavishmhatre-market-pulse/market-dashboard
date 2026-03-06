@@ -1,6 +1,7 @@
 import streamlit as st
 import yfinance as yf
 import requests
+import time  # <-- NEW: This lets us control the clock
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 # Setup Dashboard Look
@@ -10,13 +11,12 @@ st.title("📊 Global Market Impact Pulse")
 # --- 1. LIVE PRICES (Sidebar) ---
 st.sidebar.header("Live Watchlist")
 
-# We will use SI=F (Silver Futures) as it is generally the most stable free ticker
+# We use SI=F (Silver Futures) for stable free data
 tickers = {"Silver (XAG)": "SI=F", "Gold (XAU)": "GC=F", "Crude Oil": "CL=F", "S&P 500": "^GSPC"}
 
 for name, symbol in tickers.items():
     try:
         data = yf.Ticker(symbol)
-        # CHANGED: Pull 5 days of data to guarantee we don't get a blank page
         hist = data.history(period="5d")
         
         if not hist.empty:
@@ -59,3 +59,8 @@ try:
 
 except Exception as e:
     st.info("System is ready! Just add your API key to Streamlit Settings to activate.")
+
+# --- 3. AUTO REFRESH (The "Fastest Updates" Engine) ---
+st.write("⏱️ *Auto-refreshing every 60 seconds...*")
+time.sleep(60) # Pauses for 60 seconds
+st.rerun()     # Automatically reloads the page to get fresh data
