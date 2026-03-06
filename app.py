@@ -1,18 +1,24 @@
 import streamlit as st
 import yfinance as yf
 import requests
-import time  # <-- NEW: This lets us control the clock
+import time
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 # Setup Dashboard Look
 st.set_page_config(page_title="Global Market Pulse", layout="wide")
-st.title("📊 Global Market Impact Pulse")
+st.title("📊 Custom Market Impact Pulse")
 
 # --- 1. LIVE PRICES (Sidebar) ---
 st.sidebar.header("Live Watchlist")
 
-# We use SI=F (Silver Futures) for stable free data
-tickers = {"Silver (XAG)": "SI=F", "Gold (XAU)": "GC=F", "Crude Oil": "CL=F", "S&P 500": "^GSPC"}
+# Custom list: Gold, Silver, Oil, Crypto (Bitcoin), and Indian Stocks (Nifty 50)
+tickers = {
+    "Gold (XAU)": "GC=F", 
+    "Silver (XAG)": "SI=F", 
+    "Crude Oil": "CL=F",
+    "Bitcoin (BTC)": "BTC-USD",
+    "Nifty 50 (India)": "^NSEI"
+}
 
 for name, symbol in tickers.items():
     try:
@@ -21,7 +27,8 @@ for name, symbol in tickers.items():
         
         if not hist.empty:
             price = round(hist['Close'].iloc[-1], 2)
-            st.sidebar.metric(label=name, value=f"${price}")
+            # Formatting to handle crypto and index sizes cleanly
+            st.sidebar.metric(label=name, value=f"{price:,.2f}")
         else:
             st.sidebar.metric(label=name, value="Market Closed")
     except Exception as e:
@@ -33,13 +40,19 @@ st.subheader("🔥 Live News Impact Stream")
 try:
     API_KEY = st.secrets["NEWS_API_KEY"]
     
-    url = f"https://newsapi.org/v2/everything?q=silver OR gold OR crude oil OR global market&language=en&sortBy=publishedAt&apiKey={API_KEY}"
+    # NEW: Hyper-focused search query for your specific assets
+    search_query = 'gold OR silver OR crypto OR "indian stock" OR "crude oil"'
+    url = f"https://newsapi.org/v2/everything?q={search_query}&language=en&sortBy=publishedAt&apiKey={API_KEY}"
+    
     response = requests.get(url).json()
     
     if response.get("status") == "ok":
         articles = response.get("articles", [])[:10] 
         analyzer = SentimentIntensityAnalyzer()
         
+        if not articles:
+            st.write("No major news on these exact assets in the last few minutes. Waiting for updates...")
+            
         for article in articles:
             title = article.get("title", "")
             score = analyzer.polarity_scores(title)['compound']
@@ -60,7 +73,7 @@ try:
 except Exception as e:
     st.info("System is ready! Just add your API key to Streamlit Settings to activate.")
 
-# --- 3. AUTO REFRESH (The "Fastest Updates" Engine) ---
-st.write("⏱️ *Auto-refreshing every 60 seconds...*")
-time.sleep(60) # Pauses for 60 seconds
-st.rerun()     # Automatically reloads the page to get fresh data
+# --- 3. AUTO REFRESH ---
+st.write("⏱️ *Auto-refreshing every 60 seconds for fastest updates...*")
+time.sleep(60) 
+st.rerun()
