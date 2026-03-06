@@ -4,11 +4,12 @@ import requests
 import time
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
-# Setup Dashboard Look
-st.set_page_config(page_title="Global Market Pulse", layout="wide")
+# Force Dark Mode and Wide Layout
+st.set_page_config(page_title="Global Market Pulse", layout="wide", initial_sidebar_state="expanded")
+
 st.title("📊 Custom Market Impact Pulse")
 
-# --- 1. LIVE PRICES (Sidebar) ---
+# --- 1. LIVE PRICES & MINI CHARTS (Sidebar) ---
 st.sidebar.header("Live Watchlist")
 
 tickers = {
@@ -22,18 +23,26 @@ tickers = {
 for name, symbol in tickers.items():
     try:
         data = yf.Ticker(symbol)
-        hist = data.history(period="5d")
+        # Pulling 7 days of data so we have a nice line chart to look at
+        hist = data.history(period="7d")
         
         if not hist.empty:
             price = round(hist['Close'].iloc[-1], 2)
-            st.sidebar.metric(label=name, value=f"{price:,.2f}")
+            # Calculate difference to show red/green
+            prev_price = round(hist['Close'].iloc[-2], 2)
+            delta = round(price - prev_price, 2)
+            
+            # Show the price and the green/red change indicator
+            st.sidebar.metric(label=name, value=f"{price:,.2f}", delta=f"{delta}")
+            
+            # Show the mini line chart!
+            st.sidebar.line_chart(hist['Close'], height=120)
         else:
             st.sidebar.metric(label=name, value="Market Closed")
     except Exception as e:
         st.sidebar.metric(label=name, value="Fetching...")
 
-# --- 2. ASSET KEYWORDS (The Strict Filter & Tagger) ---
-# This dictionary teaches the AI what words belong to which asset
+# --- 2. ASSET KEYWORDS (The Strict Filter) ---
 asset_keywords = {
     "Gold": ["gold", "xau", "bullion", "precious metal"],
     "Silver": ["silver", "xag"],
@@ -55,8 +64,6 @@ st.subheader("🔥 Live News Impact Stream")
 
 try:
     API_KEY = st.secrets["NEWS_API_KEY"]
-    
-    # A tighter initial search to avoid Disney and Hollywood junk
     search_query = '("gold price" OR "silver price" OR bitcoin OR cryptocurrency OR "crude oil" OR "nifty 50" OR sensex)'
     url = f"https://newsapi.org/v2/everything?q={search_query}&language=en&sortBy=publishedAt&apiKey={API_KEY}"
     
@@ -65,38 +72,25 @@ try:
     if response.get("status") == "ok":
         raw_articles = response.get("articles", [])
         analyzer = SentimentIntensityAnalyzer()
-        
         valid_articles_displayed = 0
         
         for article in raw_articles:
-            if valid_articles_displayed >= 10:
-                break # Stop once we have 10 perfectly filtered articles
+            if valid_articles_displayed >= 10: break
                 
             title = article.get("title", "")
             desc = article.get("description", "")
             full_text = f"{title} {desc}"
             
-            # 1. Figure out which asset this article is actually about
             impacted_assets = identify_asset(full_text)
-            
-            # 2. THE RUTHLESS FILTER: If it's not about our assets, skip it entirely!
-            if not impacted_assets:
-                continue
+            if not impacted_assets: continue
                 
             valid_articles_displayed += 1
-            
-            # 3. Format the label (e.g., "[Crude Oil, Gold]")
             asset_tag = f"[{', '.join(impacted_assets)}]"
-            
-            # 4. Score the sentiment
             score = analyzer.polarity_scores(title)['compound']
             
-            if score > 0.1:
-                impact = f"🟢 GOOD for {asset_tag}"
-            elif score < -0.1:
-                impact = f"🔴 BAD for {asset_tag}"
-            else:
-                impact = f"⚪ NEUTRAL for {asset_tag}"
+            if score > 0.1: impact = f"🟢 GOOD for {asset_tag}"
+            elif score < -0.1: impact = f"🔴 BAD for {asset_tag}"
+            else: impact = f"⚪ NEUTRAL for {asset_tag}"
                 
             with st.expander(f"{impact} | {title}"):
                 st.write(desc)
@@ -104,7 +98,6 @@ try:
                 
         if valid_articles_displayed == 0:
             st.write("No highly relevant market news found in the last few minutes. Waiting for the next cycle...")
-            
     else:
         st.error("Waiting for valid API Key or API limit reached...")
 
