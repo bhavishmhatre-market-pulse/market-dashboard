@@ -48,12 +48,12 @@ def hex_to_rgba(hex_color, opacity=0.1):
 with col_left:
     st.markdown("<h4 style='color: #8B949E; font-size: 12px; margin-bottom: 15px;'>LIVE COMMODITY TRACKER</h4>", unsafe_allow_html=True)
     
-    # Matching the assets from your image
+    # YOUR STRICT WATCHLIST: Gold, Silver, Oil, Indian Stocks
     assets = {
         "SILVER (XAG/USD)": {"ticker": "SI=F", "icon": "🥈", "color": "#00FF7F"}, 
         "GOLD (XAU/USD)": {"ticker": "GC=F", "icon": "🟡", "color": "#FFD700"},   
         "WTI CRUDE": {"ticker": "CL=F", "icon": "🛢️", "color": "#00FF7F"},       
-        "PLATINUM": {"ticker": "PL=F", "icon": "💎", "color": "#AAAAAA"}        
+        "NIFTY 50 (INDIA)": {"ticker": "^NSEI", "icon": "🇮🇳", "color": "#00BFFF"}        
     }
 
     for name, info in assets.items():
@@ -75,6 +75,9 @@ with col_left:
                     status, label_color = "Neutral", "#AAAAAA"
                     
                 bg_color = hex_to_rgba(label_color, 0.15)
+                
+                # Format to Rupees for Nifty, Dollars for the rest
+                price_str = f"₹{current_price:,.2f}" if "NIFTY" in name else f"${current_price:,.2f}"
 
                 # TOP HALF: The Text Card
                 st.markdown(f"""
@@ -84,7 +87,7 @@ with col_left:
                         <span style="background-color: {bg_color}; color: {label_color}; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">{status}</span>
                     </div>
                     <div style="margin-top: 5px;">
-                        <span style="color: white; font-size: 24px; font-weight: bold;">${current_price:,.2f}</span>
+                        <span style="color: white; font-size: 24px; font-weight: bold;">{price_str}</span>
                     </div>
                     <div style="margin-bottom: 5px;">
                         <span style="color: {label_color}; font-size: 12px; font-weight: bold;">{'▲' if pct_change > 0 else '▼'} {pct_change:+.2f}%</span>
@@ -104,12 +107,11 @@ with col_left:
                     margin=dict(l=0, r=0, t=0, b=0),
                     height=75,
                     paper_bgcolor='#1A1D24', plot_bgcolor='#1A1D24',
-                    xaxis=dict(showgrid=False, zeroline=False, visible=False), # Hides bottom text
-                    yaxis=dict(showgrid=False, zeroline=False, visible=False), # Hides side text
+                    xaxis=dict(showgrid=False, zeroline=False, visible=False), 
+                    yaxis=dict(showgrid=False, zeroline=False, visible=False), 
                     showlegend=False
                 )
                 
-                # Display chart and close the bottom border
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
                 st.markdown("""<div style="border-top: 1px solid #2A2E39; margin-bottom: 10px;"></div>""", unsafe_allow_html=True)
         except:
@@ -121,8 +123,13 @@ with col_right:
     
     try:
         API_KEY = st.secrets["NEWS_API_KEY"]
-        url = f"https://newsapi.org/v2/everything?q=(gold OR silver OR oil OR inflation OR fed)&language=en&sortBy=publishedAt&apiKey={API_KEY}"
-        news = requests.get(url).json().get("articles", [])[:5]
+        
+        # --- YOUR CUSTOM SEARCH QUERY ---
+        # Strictly filters for Gold, Silver, Crude Oil, and Indian Market terms
+        search_query = '("gold price" OR "silver price" OR "crude oil" OR "nifty 50" OR sensex OR "indian stock")'
+        url = f"https://newsapi.org/v2/everything?q={search_query}&language=en&sortBy=publishedAt&apiKey={API_KEY}"
+        
+        news = requests.get(url).json().get("articles", [])[:6] # Grabs the 6 newest articles
         
         analyzer = SentimentIntensityAnalyzer()
         for art in news:
