@@ -34,7 +34,6 @@ def get_oil_price():
     except:
         return "Unavailable"
 
-
 col1, col2, col3 = st.columns(3)
 
 with col1:
@@ -46,14 +45,13 @@ with col2:
 with col3:
     st.metric("WTI Crude Oil", get_oil_price())
 
-
 st.divider()
 
 st.subheader("📰 Global Market News")
 
 def get_news():
     try:
-        url = "https://newsapi.org/v2/top-headlines?category=business&language=en&pageSize=5&apiKey=YOUR_NEWSAPI_KEY"
+        url = "https://newsapi.org/v2/top-headlines?category=business&language=en&pageSize=5&apiKey=037f99a875704e9e8ca788e6859a7de4"
         response = requests.get(url)
         data = response.json()
         return data["articles"]
@@ -62,9 +60,12 @@ def get_news():
 
 articles = get_news()
 
-for article in articles:
-    st.markdown(f"### {article['title']}")
-    st.write(article["source"]["name"])
-    st.write(article["description"])
-    st.markdown(f"[Read more]({article['url']})")
-    st.divider()
+if articles:
+    for article in articles:
+        st.markdown(f"### {article['title']}")
+        st.write(f"Source: {article['source']['name']}")
+        st.write(article["description"])
+        st.markdown(f"[Read more]({article['url']})")
+        st.divider()
+else:
+    st.warning("News data not available")
