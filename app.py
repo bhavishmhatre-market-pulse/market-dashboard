@@ -45,3 +45,4 @@ with col_left:
                 st.line_chart(hist['Close'], color=info["color"], height=100, use_container_width=True)
         except:
             st.error(f"Syncing {name}...")
+            
