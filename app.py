@@ -1,92 +1,61 @@
 import streamlit as st
 import yfinance as yf
 import requests
-import plotly.graph_objects as go
 
 st.set_page_config(page_title="India Market Impact Pulse", layout="wide")
 
-st.title("🇮🇳 INDIA MARKET IMPACT PULSE")
+st.title("📊 IN INDIA MARKET IMPACT PULSE")
 
-# -------- Chart Function --------
-def chart(symbol):
+# -------- MARKET DATA --------
 
-    ticker = yf.Ticker(symbol)
-    df = ticker.history(period="1d", interval="5m")
+def get_price(symbol):
+    try:
+        data = yf.Ticker(symbol).history(period="1d")
+        price = data["Close"].iloc[-1]
+        return round(price,2), data["Close"]
+    except:
+        return "Unavailable", []
 
-    price = round(df["Close"].iloc[-1],2)
+col1, col2 = st.columns(2)
 
-    fig = go.Figure()
-
-    fig.add_trace(go.Scatter(
-        x=df.index,
-        y=df["Close"],
-        mode="lines"
-    ))
-
-    fig.update_layout(
-        height=150,
-        margin=dict(l=0,r=0,t=0,b=0),
-        paper_bgcolor="#161b22",
-        plot_bgcolor="#161b22",
-        xaxis_visible=False,
-        yaxis_visible=False
-    )
-
-    return price, fig
-
-
-left,right = st.columns([1,1.3])
-
-# -------- LEFT SIDE --------
-with left:
-
-    st.subheader("📊 Market Tracker")
-
-    # NIFTY 50
-    price,fig = chart("^NSEI")
+with col1:
+    price, chart = get_price("^NSEI")
     st.metric("NIFTY 50", price)
-    st.plotly_chart(fig,use_container_width=True)
+    if len(chart) > 0:
+        st.line_chart(chart)
 
-    # BANK NIFTY
-    price,fig = chart("^NSEBANK")
-    st.metric("BANK NIFTY", price)
-    st.plotly_chart(fig,use_container_width=True)
+with col2:
+    price, chart = get_price("^NSEBANK")
+    st.metric("BANKNIFTY", price)
+    if len(chart) > 0:
+        st.line_chart(chart)
 
-    # GOLD
-    price,fig = chart("GC=F")
-    st.metric("GOLD", price)
-    st.plotly_chart(fig,use_container_width=True)
+st.divider()
 
-    # SILVER
-    price,fig = chart("SI=F")
-    st.metric("SILVER", price)
-    st.plotly_chart(fig,use_container_width=True)
+# -------- NEWS --------
 
-    # CRUDE
-    price,fig = chart("CL=F")
-    st.metric("CRUDE OIL", price)
-    st.plotly_chart(fig,use_container_width=True)
+st.header("📰 Market News")
 
+API_KEY = "037f99a875704e9e8ca788e6859a7de4"
 
-# -------- RIGHT SIDE NEWS --------
-with right:
-
-    st.subheader("📰 Market News")
-
-    url = "https://newsapi.org/v2/top-headlines?country=in&category=business&pageSize=5&apiKey=037f99a875704e9e8ca788e6859a7de4"
-
-    data = requests.get(url).json()
+def get_news():
+    url = f"https://newsapi.org/v2/everything?q=stock%20market&language=en&sortBy=publishedAt&pageSize=5&apiKey={API_KEY}"
+    r = requests.get(url)
+    data = r.json()
 
     if "articles" in data:
+        return data["articles"]
+    else:
+        return []
 
-        for article in data["articles"]:
+articles = get_news()
 
-            st.markdown(f"### {article['title']}")
-            st.write(article["source"]["name"])
-
-            if article["description"]:
-                st.write(article["description"])
-
-            st.markdown(f"[Read full article]({article['url']})")
-
-            st.divider()
+if articles:
+    for a in articles:
+        st.subheader(a["title"])
+        st.write(a["source"]["name"])
+        st.write(a["description"])
+        st.markdown(f"[Read full article]({a['url']})")
+        st.divider()
+else:
+    st.warning("News could not be loaded.")
