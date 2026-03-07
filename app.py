@@ -3,150 +3,90 @@ import yfinance as yf
 import requests
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="Global Market Impact Pulse 2026", layout="wide")
+st.set_page_config(page_title="India Market Impact Pulse", layout="wide")
 
-# ---- Custom Dark Styling ----
-st.markdown("""
-<style>
-body {background-color:#0e1117;}
-.metric-card{
-    background:#161b22;
-    padding:15px;
-    border-radius:12px;
-    margin-bottom:10px;
-}
-.news-good{
-    background:#10281d;
-    padding:15px;
-    border-radius:10px;
-    border-left:5px solid #00ff9f;
-}
-.news-bad{
-    background:#2a1010;
-    padding:15px;
-    border-radius:10px;
-    border-left:5px solid #ff4b4b;
-}
-.news-critical{
-    background:#3a1111;
-    padding:15px;
-    border-radius:10px;
-    border:2px solid #ff4b4b;
-}
-</style>
-""", unsafe_allow_html=True)
+st.title("🇮🇳 INDIA MARKET IMPACT PULSE")
 
-st.title("🌍 GLOBAL MARKET IMPACT PULSE 2026")
+# -------- Chart Function --------
+def chart(symbol):
 
-# ---- Layout ----
-left, right = st.columns([1,1.3])
+    ticker = yf.Ticker(symbol)
+    df = ticker.history(period="1d", interval="5m")
 
-# -----------------------
-# LEFT SIDE (COMMODITIES)
-# -----------------------
+    price = round(df["Close"].iloc[-1],2)
 
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=df.index,
+        y=df["Close"],
+        mode="lines"
+    ))
+
+    fig.update_layout(
+        height=150,
+        margin=dict(l=0,r=0,t=0,b=0),
+        paper_bgcolor="#161b22",
+        plot_bgcolor="#161b22",
+        xaxis_visible=False,
+        yaxis_visible=False
+    )
+
+    return price, fig
+
+
+left,right = st.columns([1,1.3])
+
+# -------- LEFT SIDE --------
 with left:
 
-    st.subheader("📊 Live Commodity Tracker")
+    st.subheader("📊 Market Tracker")
 
-    def chart(symbol):
-        ticker = yf.Ticker(symbol)
-        df = ticker.history(period="1d", interval="5m")
-
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=df.index,
-            y=df["Close"],
-            mode="lines"
-        ))
-
-        fig.update_layout(
-            height=120,
-            margin=dict(l=0,r=0,t=0,b=0),
-            paper_bgcolor="#161b22",
-            plot_bgcolor="#161b22",
-            xaxis_visible=False,
-            yaxis_visible=False
-        )
-
-        return fig, round(df["Close"].iloc[-1],2)
-
-    # Silver
-    fig, price = chart("SI=F")
-    st.markdown("### 🪙 SILVER (XAG/USD)")
-    st.metric("Price", f"${price}")
+    # NIFTY 50
+    price,fig = chart("^NSEI")
+    st.metric("NIFTY 50", price)
     st.plotly_chart(fig,use_container_width=True)
 
-    # Gold
-    fig, price = chart("GC=F")
-    st.markdown("### 🥇 GOLD (XAU/USD)")
-    st.metric("Price", f"${price}")
+    # BANK NIFTY
+    price,fig = chart("^NSEBANK")
+    st.metric("BANK NIFTY", price)
     st.plotly_chart(fig,use_container_width=True)
 
-    # Oil
-    fig, price = chart("CL=F")
-    st.markdown("### 🛢 WTI CRUDE")
-    st.metric("Price", f"${price}")
+    # GOLD
+    price,fig = chart("GC=F")
+    st.metric("GOLD", price)
     st.plotly_chart(fig,use_container_width=True)
 
-# -----------------------
-# RIGHT SIDE (NEWS)
-# -----------------------
+    # SILVER
+    price,fig = chart("SI=F")
+    st.metric("SILVER", price)
+    st.plotly_chart(fig,use_container_width=True)
 
+    # CRUDE
+    price,fig = chart("CL=F")
+    st.metric("CRUDE OIL", price)
+    st.plotly_chart(fig,use_container_width=True)
+
+
+# -------- RIGHT SIDE NEWS --------
 with right:
 
-    st.subheader("📰 News Impact Stream")
+    st.subheader("📰 Market News")
 
-    url = "https://newsapi.org/v2/top-headlines?category=business&language=en&pageSize=5&apiKey=037f99a875704e9e8ca788e6859a7de4"
+    url = "https://newsapi.org/v2/top-headlines?country=in&category=business&pageSize=5&apiKey=037f99a875704e9e8ca788e6859a7de4"
+
     data = requests.get(url).json()
 
     if "articles" in data:
 
-        for i,article in enumerate(data["articles"]):
+        for article in data["articles"]:
 
-            title = article["title"]
-            desc = article["description"]
-            link = article["url"]
+            st.markdown(f"### {article['title']}")
+            st.write(article["source"]["name"])
 
-            if i == 0:
-                st.markdown(f"""
-                <div class="news-critical">
-                <b>🚨 CRITICAL ALERT</b><br>
-                {title}<br><br>
-                {desc}<br>
-                <a href="{link}">Read more</a>
-                </div>
-                """, unsafe_allow_html=True)
+            if article["description"]:
+                st.write(article["description"])
 
-            elif i % 2 == 0:
-                st.markdown(f"""
-                <div class="news-good">
-                <b>GOOD IMPACT</b><br>
-                {title}<br><br>
-                {desc}<br>
-                <a href="{link}">Read more</a>
-                </div>
-                """, unsafe_allow_html=True)
+            st.markdown(f"[Read full article]({article['url']})")
 
-            else:
-                st.markdown(f"""
-                <div class="news-bad">
-                <b>BAD IMPACT</b><br>
-                {title}<br><br>
-                {desc}<br>
-                <a href="{link}">Read more</a>
-                </div>
-                """, unsafe_allow_html=True)
-
-# ---- Bottom Indicators ----
-st.divider()
-
-c1,c2,c3 = st.columns(3)
-
-sp500 = yf.Ticker("^GSPC").history(period="1d")["Close"].iloc[-1]
-dxy = yf.Ticker("DX-Y.NYB").history(period="1d")["Close"].iloc[-1]
-bond = yf.Ticker("^TNX").history(period="1d")["Close"].iloc[-1]
-
-c1.metric("S&P 500", round(sp500,2))
-c2.metric("US Dollar Index", round(dxy,2))
-c3.metric("US 10Y Yield", round(bond,2))
+            st.divider()
