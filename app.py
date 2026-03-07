@@ -1,4 +1,5 @@
 import streamlit as st
+import yfinance as yf
 import requests
 
 st.set_page_config(page_title="Global Market Impact Pulse 2026", layout="wide")
@@ -7,17 +8,15 @@ st.title("🌍 GLOBAL MARKET IMPACT PULSE 2026")
 
 st.subheader("📊 Live Commodity Tracker")
 
-# Function to get commodity prices
+# Get commodity prices using yfinance
 def get_price(symbol):
     try:
-        url = f"https://query1.finance.yahoo.com/v7/finance/quote?symbols={symbol}"
-        response = requests.get(url).json()
-        price = response["quoteResponse"]["result"][0]["regularMarketPrice"]
-        return price
+        ticker = yf.Ticker(symbol)
+        price = ticker.history(period="1d")["Close"].iloc[-1]
+        return round(price, 2)
     except:
         return "Unavailable"
 
-# Layout
 col1, col2, col3 = st.columns(3)
 
 with col1:
@@ -34,7 +33,6 @@ with col3:
 
 st.divider()
 
-# NEWS SECTION
 st.subheader("📰 Global Market News")
 
 def get_news():
@@ -57,4 +55,3 @@ if articles:
         st.divider()
 else:
     st.warning("News data not available")
-    
