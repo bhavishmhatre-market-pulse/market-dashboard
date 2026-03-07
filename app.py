@@ -10,15 +10,10 @@ st.set_page_config(page_title="Market Pulse Terminal", layout="wide", initial_si
 
 st.markdown("""
     <style>
-    /* Deep dark background matching the image */
     .stApp { background-color: #12141A; } 
     h1, h2, h3, h4, h5, p, span { font-family: 'Segoe UI', Roboto, Helvetica, sans-serif; }
     .block-container { padding-top: 1.5rem; }
-    
-    /* Make the charts hug the text exactly like the image */
     .stPlotlyChart { margin-top: -30px; margin-bottom: -15px; }
-    
-    /* Header styling */
     .header-glow { color: white; font-weight: 800; font-size: 24px; letter-spacing: 1px; }
     .live-feed-btn {
         background-color: rgba(0, 255, 127, 0.1); border: 1px solid #00FF7F;
@@ -28,7 +23,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# EXACT HEADER MATCH
 st.markdown("""
     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #30363D; padding-bottom: 10px; margin-bottom: 20px;">
         <span class="header-glow">GLOBAL MARKET IMPACT PULSE 2026</span>
@@ -38,7 +32,6 @@ st.markdown("""
 
 col_left, col_right = st.columns([1.1, 2.5])
 
-# Helper function for glowing colors
 def hex_to_rgba(hex_color, opacity=0.1):
     hex_color = hex_color.lstrip('#')
     rgb = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
@@ -48,7 +41,6 @@ def hex_to_rgba(hex_color, opacity=0.1):
 with col_left:
     st.markdown("<h4 style='color: #8B949E; font-size: 12px; margin-bottom: 15px;'>LIVE COMMODITY TRACKER</h4>", unsafe_allow_html=True)
     
-    # YOUR STRICT WATCHLIST: Gold, Silver, Oil, Indian Stocks
     assets = {
         "SILVER (XAG/USD)": {"ticker": "SI=F", "icon": "🥈", "color": "#00FF7F"}, 
         "GOLD (XAU/USD)": {"ticker": "GC=F", "icon": "🟡", "color": "#FFD700"},   
@@ -66,7 +58,6 @@ with col_left:
                 prev_price = hist['Close'].iloc[0]
                 pct_change = ((current_price - prev_price) / prev_price) * 100
                 
-                # Dynamic coloring
                 if pct_change > 0:
                     status, label_color = "Bullish", "#00FF7F"
                 elif pct_change < 0:
@@ -75,11 +66,8 @@ with col_left:
                     status, label_color = "Neutral", "#AAAAAA"
                     
                 bg_color = hex_to_rgba(label_color, 0.15)
-                
-                # Format to Rupees for Nifty, Dollars for the rest
                 price_str = f"₹{current_price:,.2f}" if "NIFTY" in name else f"${current_price:,.2f}"
 
-                # TOP HALF: The Text Card
                 st.markdown(f"""
                 <div style="background-color: #1A1D24; border: 1px solid #2A2E39; border-bottom: none; border-radius: 8px 8px 0 0; padding: 15px 15px 0 15px; margin-top: 10px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -95,13 +83,12 @@ with col_left:
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # BOTTOM HALF: The Sharp Plotly Chart (No Axes)
                 fig = go.Figure(go.Scatter(
                     x=hist.index, y=hist['Close'],
                     mode='lines',
                     line=dict(color=info["color"], width=2),
                     fill='tozeroy',
-                    fillcolor=hex_to_rgba(info["color"], 0.1) # Subtle glowing fade
+                    fillcolor=hex_to_rgba(info["color"], 0.1) 
                 ))
                 fig.update_layout(
                     margin=dict(l=0, r=0, t=0, b=0),
@@ -123,27 +110,24 @@ with col_right:
     
     try:
         API_KEY = st.secrets["NEWS_API_KEY"]
-        
-        # --- YOUR CUSTOM SEARCH QUERY ---
-        # Strictly filters for Gold, Silver, Crude Oil, and Indian Market terms
         search_query = '("gold price" OR "silver price" OR "crude oil" OR "nifty 50" OR sensex OR "indian stock")'
         url = f"https://newsapi.org/v2/everything?q={search_query}&language=en&sortBy=publishedAt&apiKey={API_KEY}"
         
-        news = requests.get(url).json().get("articles", [])[:6] # Grabs the 6 newest articles
+        news = requests.get(url).json().get("articles", [])[:6] 
         
         analyzer = SentimentIntensityAnalyzer()
         for art in news:
             score = analyzer.polarity_scores(art['title'])['compound']
             
-            # Exact Match: Full Glowing Borders
+            # --- NEW BULLISH / BEARISH TAGS ---
             if score > 0.1:
-                color, tag, text_color = "#00FF7F", "[GOOD IMPACT]", "#00FF7F"
+                color, tag, text_color = "#00FF7F", "[BULLISH]", "#00FF7F"
             elif score < -0.1:
-                color, tag, text_color = "#FF4B4B", "[CRITICAL ALERT]", "#FF4B4B"
+                color, tag, text_color = "#FF4B4B", "[BEARISH]", "#FF4B4B"
             else:
-                color, tag, text_color = "#AAAAAA", "[NEUTRAL INFO]", "#AAAAAA"
+                color, tag, text_color = "#AAAAAA", "[NEUTRAL]", "#AAAAAA"
                 
-            box_shadow = f"0px 0px 15px {hex_to_rgba(color, 0.4)}" # The Glow Effect
+            box_shadow = f"0px 0px 15px {hex_to_rgba(color, 0.4)}" 
             
             st.markdown(f"""
             <div style="background-color: #1A1D24; border: 1px solid {color}; box-shadow: {box_shadow}; border-radius: 6px; padding: 15px; margin-bottom: 15px;">
