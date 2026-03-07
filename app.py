@@ -7,46 +7,34 @@ st.title("🌍 GLOBAL MARKET IMPACT PULSE 2026")
 
 st.subheader("📊 Live Commodity Tracker")
 
-# ---- Gold Price ----
-def get_gold_price():
+# Function to get commodity prices
+def get_price(symbol):
     try:
-        url = "https://api.metals.live/v1/spot/gold"
-        data = requests.get(url).json()
-        return data[0]["price"]
+        url = f"https://query1.finance.yahoo.com/v7/finance/quote?symbols={symbol}"
+        response = requests.get(url).json()
+        price = response["quoteResponse"]["result"][0]["regularMarketPrice"]
+        return price
     except:
         return "Unavailable"
 
-# ---- Silver Price ----
-def get_silver_price():
-    try:
-        url = "https://api.metals.live/v1/spot/silver"
-        data = requests.get(url).json()
-        return data[0]["price"]
-    except:
-        return "Unavailable"
-
-# ---- Oil Price ----
-def get_oil_price():
-    try:
-        url = "https://api.metals.live/v1/spot/oil"
-        data = requests.get(url).json()
-        return data[0]["price"]
-    except:
-        return "Unavailable"
-
+# Layout
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.metric("Gold (USD)", get_gold_price())
+    gold = get_price("GC=F")
+    st.metric("Gold (USD)", gold)
 
 with col2:
-    st.metric("Silver (USD)", get_silver_price())
+    silver = get_price("SI=F")
+    st.metric("Silver (USD)", silver)
 
 with col3:
-    st.metric("WTI Crude Oil", get_oil_price())
+    oil = get_price("CL=F")
+    st.metric("WTI Crude Oil", oil)
 
 st.divider()
 
+# NEWS SECTION
 st.subheader("📰 Global Market News")
 
 def get_news():
@@ -69,3 +57,4 @@ if articles:
         st.divider()
 else:
     st.warning("News data not available")
+    
